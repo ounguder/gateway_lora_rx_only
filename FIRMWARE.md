@@ -1,6 +1,6 @@
 # Gateway LoRa RX Only
 
-**Version:** v1.0.0
+**Version:** v1.0.1
 **Date:** 2026-02-27
 **Status:** Running
 **Target:** Nucleo-L476RG + LR1121 shield
@@ -66,16 +66,16 @@ Standalone LoRa receiver for demonstration. Receives binary frame v1 packets fro
 | Latest FW Available | 0x0103               |
 | Shield Variant      | LR1110MB1DIS (compatible pinout) |
 | Regulator Mode      | From shield config (DC-DC) |
-| TCXO                | Present (supply + startup from shield config) |
+| TCXO                | Not present (LR1121 uses XTAL, not TCXO)      |
 | RF Switch           | DIO-controlled (shield config) |
 | LF Clock            | From shield config   |
-| Calibration         | RC64k only (0x01) — full cal (0x3F) hangs BUSY |
+| Calibration         | Full (0x3F) with correct RADIO_SHIELD          |
 | SPI                 | SPI1 (D11/D12/D13, NSS=D7) |
 | BUSY Pin            | D3                   |
 | RESET Pin           | A0                   |
 | IRQ Pin             | D5 (DIO, rising edge) |
 
-### Calibration Workaround
+### Calibration — Root Cause Found (v1.0.1)
 
 Full calibration (`0x3F`) causes BUSY pin to stay HIGH indefinitely — PLL cannot lock (suspected TCXO startup issue). The firmware performs:
 
@@ -154,11 +154,10 @@ STM32_Programmer_CLI.exe --connect port=SWD --download bin/p2p_receiver_demo.bin
 
 ## Known Issues
 
-| Issue | Impact | Mitigation |
-|-------|--------|------------|
-| Full calibration (0x3F) hangs | Blocks init without workaround | RC64k fallback + implicit PLL cal |
-| LR1121 FW 0x0102 (not latest) | May contribute to cal issue | Update to 0x0103 when available |
-| ADC calibration skipped | RSSI/SNR may have reduced accuracy | Acceptable for demo |
+| Issue | Impact | Status |
+|-------|--------|--------|
+| ~~Full calibration (0x3F) hangs~~ | ~~Blocks init~~ | **FIXED v1.0.1** |
+| LR1121 FW 0x0102 (not latest) | Minor | Update to 0x0103 when available |
 | RX boost disabled | Slightly lower sensitivity | Can enable if range is insufficient |
 
 ---
@@ -173,4 +172,5 @@ STM32_Programmer_CLI.exe --connect port=SWD --download bin/p2p_receiver_demo.bin
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| v1.0.1  | 2026-03-02 | ROOT FIX: Added RADIO_SHIELD=LR1121MB1DIS. Full calibration now succeeds. |
 | v1.0.0  | 2026-02-27 | Initial release. LoRa RX only, no modem, calibration workaround. |

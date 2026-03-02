@@ -62,7 +62,7 @@ Frame is valid iff `len == 16` and `buf[0] == 1`. Field ranges checked by `paylo
 
 ```
 ├── README.md                   This file
-├── FIRMWARE.md                 Detailed firmware documentation (v1.0.0)
+├── FIRMWARE.md                 Detailed firmware documentation (v1.0.1)
 ├── src/
 │   ├── main_demo.c             Main application (inline init + calibration workaround)
 │   ├── payload_parser.c        Binary frame v1 decoder + validator
@@ -108,15 +108,13 @@ make clean && make
 make flash   # requires ST-LINK connected
 ```
 
-## LR1121 Calibration Workaround
+## LR1121 Calibration Fix (v1.0.1)
 
-Full calibration (`0x3F`) causes the BUSY pin to stay HIGH indefinitely — the PLL cannot lock due to a suspected TCXO startup issue. The firmware handles this with:
+The v1.0.0 release had a calibration hang because the Makefile did not set `RADIO_SHIELD`. The Semtech SDK defaulted to `LR1110MB1DIS` (has TCXO), but the LR1121 shield has **no TCXO**. This caused `calibrate(0x3F)` to hang indefinitely waiting for a non-existent TCXO.
 
-1. Send `calibrate(0x3F)`, poll BUSY with a **5-second timeout**
-2. On timeout: reset the chip, re-initialise without TCXO, retry with `calibrate(0x01)` (RC64k only)
-3. PLL auto-calibrates implicitly when `lr11xx_radio_set_rf_freq()` is called during radio init
+**Fix:** `RADIO_SHIELD = LR1121MB1DIS` added to the Makefile. Full calibration now succeeds in ~100 ms.
 
-This workaround is sufficient for LoRa RX operation. ADC calibration is skipped (RSSI/SNR may have slightly reduced accuracy).
+The inline safety net (5s BUSY timeout + RC64k fallback) in `main_demo.c` is retained but no longer triggered.
 
 ## Expected Serial Output
 
@@ -163,16 +161,15 @@ See [edge_node_measure_and_tx](https://github.com/ounguder/-edge_node_measure_an
 
 ## Known Issues
 
-| Issue | Impact | Mitigation |
-|-------|--------|------------|
-| Full calibration (0x3F) hangs | Blocks init without workaround | RC64k fallback + implicit PLL cal |
-| LR1121 FW 0x0102 (not latest 0x0103) | May contribute to cal issue | Update when available |
-| ADC calibration skipped | RSSI/SNR may have reduced accuracy | Acceptable for demo |
+| Issue | Impact | Status |
+|-------|--------|--------|
+| ~~Full calibration (0x3F) hangs~~ | ~~Blocks init~~ | **FIXED v1.0.1** |
+| LR1121 FW 0x0102 (not latest 0x0103) | Minor | Update when available |
 | RX boost disabled | Slightly lower sensitivity | Can enable if range is insufficient |
 
 ## Version
 
-**v1.0.0** — 2026-02-27
+**v1.0.1** — 2026-03-02
 
 See [FIRMWARE.md](FIRMWARE.md) for full technical documentation including LR1121 settings, calibration details, and known issues.
 

@@ -13,6 +13,11 @@ APP = p2p_receiver_demo
 
 PROJECTS_COMMON_MAKEFILE = $(TOP_DIR)/lr11xx/common/apps_common.mk
 
+# LR1121 shield has NO TCXO — must override SDK default (LR1110MB1DIS has TCXO).
+# Without this, calibrate(0x3F) hangs BUSY indefinitely.
+# See: reports/lr1121-calibration-hang.md in the main repo.
+RADIO_SHIELD = LR1121MB1DIS
+
 ######################################
 # building variables
 ######################################
